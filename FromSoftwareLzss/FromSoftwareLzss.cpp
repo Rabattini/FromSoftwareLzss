@@ -7,7 +7,7 @@
 //   - Drop one file:  tool.exe <input>  => outputs <input>.bin
 //   - Drop many:      tool.exe <in1> <in2> ... => outputs <in1>.bin, <in2>.bin, ...
 //
-// Notes (core logic unchanged):
+// Notes (core logic):
 // - Expects "fsliblzs" at file start.
 // - Reads expected uncompressed size at offset 0x10 (LE u32).
 // - Decompression logic:
