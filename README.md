@@ -22,4 +22,4 @@ This was made for working with **FromSoftware PlayStation 2 (PS2) games** that u
 
 ### Command line
 ```bash
-stretch_decomp_fun001aa220 <input.STRETCH> <output.bin> [base]
+stretch_decomp_fun001aa220 <input.STRETCH> <output.bin>
