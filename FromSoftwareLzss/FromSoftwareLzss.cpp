@@ -9,7 +9,8 @@
 //
 // Notes (core logic):
 // - Expects "fsliblzs" at file start.
-// - Reads expected uncompressed size at offset 0x10 (LE u32).
+// - Reads expected compressed size at offset 0x10 (LE u32).
+// - Reads expected compressed size at offset 0x24 (BE u32).
 // - Decompression logic:
 //     flags at base+0x0C, stream at base+0x0D
 //     LSB-first bits, bit=0 literal, bit=1 backref
@@ -206,12 +207,12 @@ int main(int argc, char** argv) {
 
         std::string in_path = argv[1];
 
-        // Drag&drop: se veio só input, gera output trocando extensão por .bin
+        // Drag&drop: se veio só input, gera output automático trocando extensão por .bin
         std::string out_path;
         if (argc == 2) {
             namespace fs = std::filesystem;
             fs::path p(in_path);
-            p.replace_extension(".dec");
+            p.replace_extension(".bin");
             out_path = p.string();
         }
         else {
@@ -224,19 +225,29 @@ int main(int argc, char** argv) {
         }
 
         std::vector<uint8_t> data = read_all(in_path);
-        if (data.size() < 8) throw std::runtime_error("File too small.");
+        if (data.size() < 0x28) throw std::runtime_error("File too small.");
 
         const char magic[] = "fsliblzs";
         if (std::memcmp(data.data(), magic, 8) != 0) {
             throw std::runtime_error("Not a fsliblzs container (missing 'fsliblzs' magic).");
         }
 
-        uint32_t expected = read_u32_le(data, 0x10);
+        // 0x10 = compressed size (LE)  |  0x24 = decompressed size (BE)
+        uint32_t compressed_sz = read_u32_le(data, 0x10);
+        uint32_t expected = read_u32_be(data, 0x24);
+
+        // fallback (caso algum arquivo não use 0x24)
+        if (expected == 0) expected = compressed_sz;
+
         std::vector<uint8_t> out = fslzss_decompress(data, base, expected);
+
+        // Se você quiser checar tamanho exato:
+        // if (out.size() != expected) throw std::runtime_error("Output size mismatch.");
 
         write_all(out_path, out);
         std::cout << "OK: wrote " << out.size() << " bytes to " << out_path << "\n";
-        std::cout << "expected (from header): " << expected << "\n";
+        std::cout << "expected (0x24 BE): " << expected << "\n";
+        std::cout << "compressed (0x10 LE): " << compressed_sz << "\n";
         std::cout << "base: 0x" << std::hex << base << std::dec << "\n";
         return 0;
     }
